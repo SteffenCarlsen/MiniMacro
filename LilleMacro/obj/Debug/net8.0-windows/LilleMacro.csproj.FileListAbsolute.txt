@@ -1,0 +1,15 @@
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\bin\Debug\net8.0-windows\LilleMacro.exe
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\bin\Debug\net8.0-windows\LilleMacro.deps.json
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\bin\Debug\net8.0-windows\LilleMacro.runtimeconfig.json
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\bin\Debug\net8.0-windows\LilleMacro.dll
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\bin\Debug\net8.0-windows\LilleMacro.pdb
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.GeneratedMSBuildEditorConfig.editorconfig
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.AssemblyInfoInputs.cache
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.AssemblyInfo.cs
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.csproj.CoreCompileInputs.cache
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.sourcelink.json
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.dll
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\refint\LilleMacro.dll
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.pdb
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\LilleMacro.genruntimeconfig.cache
+G:\Old install\Documents\Github\MiniMacro\LilleMacro\obj\Debug\net8.0-windows\ref\LilleMacro.dll

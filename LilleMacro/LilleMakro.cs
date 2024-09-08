@@ -12,10 +12,13 @@ public class LilleMakro : ApplicationContext
     private List<MessageWindow> _messageWindows = new List<MessageWindow>();
     private List<SavedMacro> _savedMacros = new List<SavedMacro>();
     private ToolStripMenuItem? _showSettingsItem;
+    private ToolStripMenuItem? _addTostartupItem;
     private ToolStripMenuItem? _toolTipTitleItem;
     private ToolStripMenuItem? _addnewMacroItem;
     private NotifyIcon? _trayIcon;
-
+    private RegistryController _registryController;
+    private const string APP_NAME = "LilleMakro";
+    
     public LilleMakro()
     {
         InitializeSavedMacros();
@@ -37,6 +40,7 @@ public class LilleMakro : ApplicationContext
         }
         _trayIcon?.Dispose();
         this.Dispose(true);
+        Environment.Exit(0);
     }
 
     private void InitializeSavedMacros()
@@ -86,10 +90,12 @@ public class LilleMakro : ApplicationContext
 
     private void Initialize()
     {
+        _registryController = new RegistryController();
         _toolTipTitleItem = new ToolStripMenuItem("Small macro");
         _exitApplicationItem = new ToolStripMenuItem("Exit", null, OnApplicationExit);
         _showSettingsItem = new ToolStripMenuItem("Settings", null, OpenSettingsFile);
         _addnewMacroItem = new ToolStripMenuItem("Add new macro", null, AddNewMacro);
+        _addTostartupItem = new ToolStripMenuItem("Add to startup", null, AddToStartup) { Checked = _registryController.IsProgramRegistered(APP_NAME)};
         _trayIcon = new NotifyIcon
         {
             Visible = true,
@@ -103,10 +109,44 @@ public class LilleMakro : ApplicationContext
                     _toolTipTitleItem,
                     _addnewMacroItem,
                     _showSettingsItem,
+                    _addTostartupItem,
                     _exitApplicationItem
                 }
             }
         };
+    }
+
+    private void AddToStartup(object? sender, EventArgs e)
+    {
+        _addTostartupItem.Checked = !_addTostartupItem.Checked;
+        if (_addTostartupItem is not null && _addTostartupItem.Checked)
+        {
+            string pathToExe = "\"" + Application.ExecutablePath;
+            if (!_registryController.IsProgramRegistered(APP_NAME))
+            {
+                _trayIcon.BalloonTipText = _registryController.RegisterProgram(APP_NAME, pathToExe) 
+                    ? "Registered to Autostart!" 
+                    : "Registering to Autostart failed!";
+            }
+            else if (!_registryController.IsStartupPathUnchanged(APP_NAME, pathToExe))
+            {
+                _trayIcon.BalloonTipText = _registryController.RegisterProgram(APP_NAME, pathToExe)
+                    ? "Updated Autostart Path!"
+                    : "Updating Autostart Path failed!";
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            _trayIcon.BalloonTipText = _registryController.UnregisterProgram(APP_NAME) 
+                ? "Unregistered from Autostart!" 
+                : "Unregistering from Autostart failed!";
+        }
+
+        _trayIcon.ShowBalloonTip(250);
     }
 
     private void AddNewMacro(object? sender, EventArgs e)

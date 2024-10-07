@@ -7,14 +7,15 @@ public class LilleMakro : ApplicationContext
 {
     private const int FONTSIZE_BIG = 21;
     private const string SAVED_MACROS_FILE = "SavedMacros.json";
-    private ToolStripMenuItem? _exitApplicationItem;
+    private ToolStripMenuItem _exitApplicationItem;
     private List<GlobalHotkey> _globalHotkeys = new List<GlobalHotkey>();
     private List<MessageWindow> _messageWindows = new List<MessageWindow>();
     private List<SavedMacro> _savedMacros = new List<SavedMacro>();
-    private ToolStripMenuItem? _showSettingsItem;
-    private ToolStripMenuItem? _addTostartupItem;
-    private ToolStripMenuItem? _toolTipTitleItem;
-    private ToolStripMenuItem? _addnewMacroItem;
+    private ToolStripMenuItem _showSettingsItem;
+    private ToolStripMenuItem _addTostartupItem;
+    private ToolStripMenuItem _toolTipTitleItem;
+    private ToolStripMenuItem _addnewMacroItem;
+    private ToolStripMenuItem _deleteMacroItem;
     private NotifyIcon? _trayIcon;
     private RegistryController _registryController;
     private const string APP_NAME = "LilleMakro";
@@ -91,11 +92,16 @@ public class LilleMakro : ApplicationContext
     private void Initialize()
     {
         _registryController = new RegistryController();
-        _toolTipTitleItem = new ToolStripMenuItem("Small macro");
+        _toolTipTitleItem = new ToolStripMenuItem("Small macro")
+        {
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            Enabled = false
+        };
         _exitApplicationItem = new ToolStripMenuItem("Exit", null, OnApplicationExit);
         _showSettingsItem = new ToolStripMenuItem("Settings", null, OpenSettingsFile);
         _addnewMacroItem = new ToolStripMenuItem("Add new macro", null, AddNewMacro);
         _addTostartupItem = new ToolStripMenuItem("Add to startup", null, AddToStartup) { Checked = _registryController.IsProgramRegistered(APP_NAME)};
+        _deleteMacroItem = new ToolStripMenuItem("Delete macro", null, OnClickDeleteItem);
         _trayIcon = new NotifyIcon
         {
             Visible = true,
@@ -108,12 +114,33 @@ public class LilleMakro : ApplicationContext
                 {
                     _toolTipTitleItem,
                     _addnewMacroItem,
+                    _deleteMacroItem,
                     _showSettingsItem,
                     _addTostartupItem,
                     _exitApplicationItem
                 }
             }
         };
+    }
+
+    private void OnClickDeleteItem(object sender, EventArgs e)
+    {
+        var deleteMacroForm = new DeleteMacroForm(_savedMacros);
+        deleteMacroForm.ShowDialog();
+        if (deleteMacroForm.DialogResult == DialogResult.OK)
+        {
+            _savedMacros = deleteMacroForm.SavedMacros;
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(_savedMacros, options);
+            File.WriteAllText(Path.Combine(Environment.CurrentDirectory, SAVED_MACROS_FILE), json);
+            UnregisterHotkeys();
+            RegisterHotkey();
+            _trayIcon?.ShowBalloonTip(250, "Success", "Macros updated successfully.", ToolTipIcon.Info);
+        }
+        else
+        {
+            _trayIcon?.ShowBalloonTip(250, "Error", "Failed to update macros", ToolTipIcon.Error);
+        }
     }
 
     private void AddToStartup(object? sender, EventArgs e)
@@ -161,7 +188,11 @@ public class LilleMakro : ApplicationContext
             File.WriteAllText(Path.Combine(Environment.CurrentDirectory, SAVED_MACROS_FILE), json);
             UnregisterHotkeys();
             RegisterHotkey();
-            MessageBox.Show("Macro added successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _trayIcon?.ShowBalloonTip(250, "Success", "Macro Added successfully.", ToolTipIcon.Info);
+        }
+        else
+        {
+            _trayIcon?.ShowBalloonTip(250, "Error", "Failed to add macro.", ToolTipIcon.Error);
         }
     }
     private void OpenSettingsFile(object? sender, EventArgs e)

@@ -12,6 +12,9 @@
       <Compile Update="AddMacroForm.cs">
         <SubType>Form</SubType>
       </Compile>
+      <Compile Update="DeleteMacroForm.cs">
+        <SubType>Form</SubType>
+      </Compile>
     </ItemGroup>
 
 </Project>

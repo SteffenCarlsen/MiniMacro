@@ -8,6 +8,7 @@ namespace LilleMacro
 
         public Keys Hotkey { get; private set; }
         public string MacroString { get; private set; } = string.Empty;
+        public bool IsRepeatEveryMinute { get; private set; }
 
         public AddMacroForm()
         {
@@ -20,6 +21,7 @@ namespace LilleMacro
             {
                 this.Hotkey = hotkey;
                 this.MacroString = this._macroStringTextBox.Text;
+                this.IsRepeatEveryMinute = this._repeatEveryMinuteCheckBox.Checked;
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }

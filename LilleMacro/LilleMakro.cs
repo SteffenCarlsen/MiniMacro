@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Media;
 using System.Text.Json;
 
 namespace LilleMacro;
@@ -11,6 +12,8 @@ public class LilleMakro : ApplicationContext
     private List<GlobalHotkey> _globalHotkeys = new List<GlobalHotkey>();
     private List<MessageWindow> _messageWindows = new List<MessageWindow>();
     private List<SavedMacro> _savedMacros = new List<SavedMacro>();
+    private Dictionary<Keys, System.Windows.Forms.Timer> _repeatTimers = new Dictionary<Keys, System.Windows.Forms.Timer>();
+    private HashSet<Keys> _activeRepeatingHotkeys = new HashSet<Keys>();
     private ToolStripMenuItem _showSettingsItem;
     private ToolStripMenuItem _addTostartupItem;
     private ToolStripMenuItem _toolTipTitleItem;
@@ -19,6 +22,7 @@ public class LilleMakro : ApplicationContext
     private NotifyIcon? _trayIcon;
     private RegistryController _registryController;
     private const string APP_NAME = "LilleMakro";
+    
     
     public LilleMakro()
     {
@@ -30,6 +34,8 @@ public class LilleMakro : ApplicationContext
 
     private void ApplicationOnApplicationExit(object? sender, EventArgs e)
     {
+        StopAllRepeatMacros();
+
         foreach (var globalHotkey in _globalHotkeys)
         {
             globalHotkey.Dispose();
@@ -68,13 +74,23 @@ public class LilleMakro : ApplicationContext
         {
             var msgWindow = new MessageWindow();
             _globalHotkeys.Add(new GlobalHotkey(msgWindow.Handle, macro.Hotkey));
-            msgWindow.HotkeyPressed += () => SendKeys.Send(macro.MacroString);
+            if (macro.IsRepeatEveryMinute)
+            {
+                msgWindow.HotkeyPressed += () => ToggleRepeatMacro(macro);
+            }
+            else
+            {
+                msgWindow.HotkeyPressed += () => SendKeys.Send(macro.MacroString);
+            }
+
             _messageWindows.Add(msgWindow);
         }
     }
 
     private void UnregisterHotkeys()
     {
+        StopAllRepeatMacros();
+
         foreach (var hotkey in _globalHotkeys)
         {
             hotkey.Dispose();
@@ -87,6 +103,62 @@ public class LilleMakro : ApplicationContext
         
         _messageWindows.Clear();
         _globalHotkeys.Clear();
+    }
+
+    private void ToggleRepeatMacro(SavedMacro macro)
+    {
+        if (!_repeatTimers.TryGetValue(macro.Hotkey, out var timer))
+        {
+            timer = new System.Windows.Forms.Timer { Interval = 60_000 };
+            timer.Tick += (_, _) =>
+            {
+                SendKeys.Send(macro.MacroString);
+                PlayRepeatLoopFeedbackSound();
+            };
+            _repeatTimers[macro.Hotkey] = timer;
+        }
+
+        if (timer.Enabled)
+        {
+            timer.Stop();
+            _activeRepeatingHotkeys.Remove(macro.Hotkey);
+        }
+        else
+        {
+            // Fire once immediately when toggling on, then continue every minute.
+            SendKeys.Send(macro.MacroString);
+            timer.Start();
+            _activeRepeatingHotkeys.Add(macro.Hotkey);
+            PlayRepeatLoopFeedbackSound();
+        }
+
+        UpdateTrayIcon();
+    }
+
+    private void PlayRepeatLoopFeedbackSound()
+    {
+        SystemSounds.Asterisk.Play();
+    }
+
+    private void StopAllRepeatMacros()
+    {
+        foreach (var timer in _repeatTimers.Values)
+        {
+            timer.Stop();
+            timer.Dispose();
+        }
+
+        _repeatTimers.Clear();
+        _activeRepeatingHotkeys.Clear();
+        UpdateTrayIcon();
+    }
+
+    private void UpdateTrayIcon()
+    {
+        if (_trayIcon is not null)
+        {
+            _trayIcon.Icon = GenerateIcon(_activeRepeatingHotkeys.Count > 0);
+        }
     }
 
     private void Initialize()
@@ -182,7 +254,12 @@ public class LilleMakro : ApplicationContext
         addMacroForm.ShowDialog();
         if (addMacroForm.DialogResult == DialogResult.OK)
         {
-            _savedMacros.Add(new SavedMacro { Hotkey = addMacroForm.Hotkey, MacroString = addMacroForm.MacroString });
+            _savedMacros.Add(new SavedMacro
+            {
+                Hotkey = addMacroForm.Hotkey,
+                MacroString = addMacroForm.MacroString,
+                IsRepeatEveryMinute = addMacroForm.IsRepeatEveryMinute
+            });
             var options = new JsonSerializerOptions { WriteIndented = true };
             var json = JsonSerializer.Serialize(_savedMacros, options);
             File.WriteAllText(Path.Combine(Environment.CurrentDirectory, SAVED_MACROS_FILE), json);
@@ -219,18 +296,14 @@ public class LilleMakro : ApplicationContext
         Application.Exit();
     }
 
-    /// <summary>
-    ///     Dynamically generate a weeknumber icon for the application
-    /// </summary>
-    /// <param name="weekNum">Weeknumber to generate icon for</param>
-    /// <returns>A windows application icon</returns>
-    private Icon GenerateIcon()
+    private Icon GenerateIcon(bool hasActiveRepeatingMacro = false)
     {
         var bitmap = new Bitmap(32, 32);
         using (var g = Graphics.FromImage(bitmap))
         {
             g.FillRectangle(new SolidBrush(Color.Black), new Rectangle(0, 0, 32, 32));
-            g.DrawString("M", new Font("Verdana", FONTSIZE_BIG, FontStyle.Bold), new SolidBrush(Color.White), new PointF(0, 0));
+            var letterColor = hasActiveRepeatingMacro ? Color.Red : Color.White;
+            g.DrawString("M", new Font("Verdana", FONTSIZE_BIG, FontStyle.Bold), new SolidBrush(letterColor), new PointF(0, 0));
             return Icon.FromHandle(bitmap.GetHicon());
         }
     }
